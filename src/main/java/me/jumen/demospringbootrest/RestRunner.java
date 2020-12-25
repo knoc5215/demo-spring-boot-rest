@@ -4,6 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.web.client.RestTemplateCustomizer;
+import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.web.client.RestTemplate;
@@ -18,6 +22,19 @@ public class RestRunner implements ApplicationRunner {
 
     @Autowired
     WebClient.Builder webClientBuilder;
+
+    /* RestTemplate global customize */
+    @Bean
+    public RestTemplateCustomizer restTemplateCustomizer() {
+        return restTemplate -> restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+    }
+
+    /* WebClient global customize */
+    @Bean
+    public WebClientCustomizer webClientCustomizer() {
+        return webClientBuilder -> webClientBuilder.baseUrl("http://localhost:8080");
+    }
+
 
 
     @Override
@@ -47,13 +64,15 @@ public class RestRunner implements ApplicationRunner {
         System.out.println("======================================");
 
         /* WebClient non-blocking */
-        WebClient webClient = webClientBuilder.build();
 
-        Mono<String> helloMono = webClient.get().uri("http://localhost:8080/hello").retrieve().bodyToMono(String.class);
-        helloMono.subscribe(s->{
+//        WebClient webClient = webClientBuilder.baseUrl("http://localhost:8080").build();    // WebClient local customize
+        WebClient webClient = webClientBuilder.build();                                       // use WebClient global customize
+
+        Mono<String> helloMono = webClient.get().uri("/hello").retrieve().bodyToMono(String.class);
+        helloMono.subscribe(s -> {
             /* async callback */
             System.out.println(s);
-            if(stopWatch.isRunning()) {
+            if (stopWatch.isRunning()) {
                 stopWatch.stop();
             }
 
@@ -62,11 +81,11 @@ public class RestRunner implements ApplicationRunner {
         });
 
         /* WebClient non-blocking */
-        Mono<String> worldMono = webClient.get().uri("http://localhost:8080/world").retrieve().bodyToMono(String.class);
-        worldMono.subscribe(s->{
+        Mono<String> worldMono = webClient.get().uri("/world").retrieve().bodyToMono(String.class);
+        worldMono.subscribe(s -> {
             /* async callback */
             System.out.println(s);
-            if(stopWatch.isRunning()) {
+            if (stopWatch.isRunning()) {
                 stopWatch.stop();
             }
 
